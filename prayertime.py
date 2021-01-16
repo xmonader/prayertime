@@ -5,7 +5,7 @@ __all__ = ['Season', 'Calendar', 'Prayertime', 'Mazhab',
            'as_pytime', 'as_pydatetime']
 
 from math import degrees, radians, atan, asin, acos, cos, sin, tan, atan2
-from datetime import date, datetime
+from datetime import date, datetime, time
 from time import strptime
 
 
@@ -15,6 +15,9 @@ def remove_duplication(var):
 
 class Season(object):
     Winter, Summer = 0, 1
+
+class TimeFormat(object):
+    H12, H24 = 0, 1
 
 
 class Calendar(object):
@@ -29,43 +32,18 @@ class Mazhab(object):
     Default, Hanafi = 0, 1
 
 
-def to_hrtime(var, isAM=False):
-    """var: double -> human readable string of format "%I:%M:%S %p" """
+def to_hrtime(var, timeformat):
 
-    time = ''
-    intvar = int(var)  # var is double.
-    if isAM:
-        if intvar % 12 and intvar % 12 < 12:
-            zone = "AM"
-        else:
-            zone = "PM"
+    hours = int(var)
+    minutes = int((var*60) % 60)
+    seconds = int((var*3600) % 60)
+
+    time2 = time(hours, minutes, seconds)
+
+    if timeformat == TimeFormat.H12:
+        return time2.strftime("%I:%M:%S %p")
     else:
-        zone = "PM"
-
-    if intvar > 12:
-        time += str(intvar % 12)
-    elif intvar % 12 == 12:
-        time += str(intvar)
-    else:
-        time += str(intvar)
-
-    time += ":"
-    var -= intvar
-    var *= 60
-    minute = int(var)
-    time += str(minute)
-
-    time += ":"
-
-    var -= int(var)
-    var *= 60
-    sec = int(var)
-    time += str(sec)
-    time += " "
-
-    time += zone
-
-    return time
+        return time2.strftime("%H:%M:%S")
 
 
 def as_pytime(string_to_parse, fmt="%I:%M:%S %p"):
@@ -98,13 +76,14 @@ class Prayertime(object):
 
     def __init__(self, longitude, latitude, zone,
                  year, month, day,
-                 cal=Calendar.UmmAlQuraUniv, mazhab=Mazhab.Default, season=Season.Winter):
+                 cal=Calendar.UmmAlQuraUniv, mazhab=Mazhab.Default, season=Season.Winter, timeformat=TimeFormat.H12):
 
         self.coordinate = Coordinate(longitude, latitude, zone)
         self.date = date(year, month, day)
         self.calendar = cal
         self.mazhab = mazhab
         self.season = season
+        self.timeformat = timeformat
         self._shrouk = None
         self._fajr = None
         self._zuhr = None
@@ -116,37 +95,37 @@ class Prayertime(object):
     def shrouk_time(self):
         """Gets the time of shrouk."""
 
-        fmt = to_hrtime(self._shrouk, True)
+        fmt = to_hrtime(self._shrouk, self.timeformat)
         return fmt
 
     def fajr_time(self):
         """Gets the time of fajr."""
 
-        fmt = to_hrtime(self._fajr, True)
+        fmt = to_hrtime(self._fajr, self.timeformat)
         return fmt
 
     def zuhr_time(self):
         """Gets the time of zuhr."""
 
-        fmt = to_hrtime(self._zuhr, True)
+        fmt = to_hrtime(self._zuhr, self.timeformat)
         return fmt
 
     def asr_time(self):
         """Gets the time of asr."""
 
-        fmt = to_hrtime(self._asr)
+        fmt = to_hrtime(self._asr, self.timeformat)
         return fmt
 
     def maghrib_time(self):
         """Gets the time of maghrib"""
 
-        fmt = to_hrtime(self._maghrib)
+        fmt = to_hrtime(self._maghrib, self.timeformat)
         return fmt
 
     def isha_time(self):
         """Gets the time of isha"""
 
-        fmt = to_hrtime(self._isha)
+        fmt = to_hrtime(self._isha, self.timeformat)
         return fmt
 
     def calculate(self):
@@ -290,7 +269,7 @@ class Prayertime(object):
 if __name__ == "__main__":
 
     pt = Prayertime(31.2599, 30.0599, 2, 2010, 8, 6,
-                    Calendar.EgyptianGeneralAuthorityOfSurvey, Mazhab.Default, Season.Summer)
+                    Calendar.EgyptianGeneralAuthorityOfSurvey, Mazhab.Default, Season.Summer, TimeFormat.H24)
     print(pt.get_qibla())
     pt.calculate()
     pt.report()
